@@ -1,0 +1,7 @@
+f = open("queue.txt")
+s = f.read()
+s = s.split(" ")
+mv = max(s)
+s.remove(mv)
+s = ' '.join(s)
+print(mv, s)
