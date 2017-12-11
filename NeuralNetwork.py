@@ -6,5 +6,6 @@ import numpy as np
 fname = "https://stepic.org/media/attachments/lesson/16462/boston_houses.csv"
 f = urllib.request.urlopen(fname)  # open file from URL
 data = np.loadtxt(f, delimiter=',', skiprows=1)  # load data to work with
-b = linalg.inv(data[:, 1:].T.dot(data[:, 1:])).dot(data[:, 1:].T).dot(data[:, 0])
-print(" ".join(map(str, b)))
+X = np.hstack((np.ones_like(data[:, 0:1]), data[:, 1:]))
+X = linalg.inv(X.T.dot(X)).dot(X.T).dot(data[:, 0])
+print(" ".join(map(str, X)))
