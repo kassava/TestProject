@@ -9,7 +9,7 @@ input_data = np.loadtxt(fname, dtype=None, delimiter='\t')
 init_modes = input_data[:, 0:-1]  # массив режимов (количество состояний на количество признаков)
 probabilities = input_data[:, -1]  # массив вероятностей состояний
 states_list = list()
-init_test_set = set(range(1, len(init_modes[0]) + 1))
+init_test_set = list(range(1, len(init_modes[0]) + 1))
 
 
 def check_modes_values(data):  # определение количества различных режимов
@@ -18,6 +18,15 @@ def check_modes_values(data):  # определение количества р�
         for j in range(len(data[0])):
             mode.add(data[i][j])
     return mode
+
+
+def delete_list(a, b):
+    for x in b:
+        try:
+            a.remove(x)
+        except ValueError:
+            pass
+    return a
 
 
 def the_first_modes_separation(modes):
@@ -29,27 +38,31 @@ def the_first_modes_separation(modes):
             d[m] = set()
         for i in range(len(modes[:])):
             d[modes[i, j]].add(i + 1)
-        t_set = set(range(1, len(modes[0]) + 1))
-        t_set.discard(j + 1)
+        t_set = list(range(1, len(modes[0]) + 1))
+        t_set.remove(j + 1)
         for v in d.values():
             if len(v) == 0:
                 continue
             if len(t_set) > 1 and len(v) > 1:
                 node = Node(t_set, v)
                 # print(node.state_list, node.modes)
-                tmp_set = init_test_set.copy().difference(t_set)
+                tmp_set = init_test_set.copy()
+                tmp_set = delete_list(tmp_set, t_set)
                 print(tmp_set, v)
                 states_list.append(node)
                 mode_separation(modes, t_set, v)
             else:
                 node = Node(t_set, v)
-                print(node.state_list, node.modes)
+                # print(node.state_list, node.modes)
+                tmp_set = init_test_set.copy()
+                tmp_set = delete_list(tmp_set, t_set)
+                print(tmp_set, v)
                 states_list.append(node)
 
 
 def mode_separation(modes, test_set, state_set):
     mode_set = check_modes_values(modes)  # определение количества режимов
-    print("state: ", state_set)
+    print("state: ", state_set, " tests: ", test_set)
     for j in test_set:  # разделение на группы состояний по режимам по каждому признаку
         d = dict()
         for m in mode_set:
@@ -57,7 +70,7 @@ def mode_separation(modes, test_set, state_set):
         for i in state_set:
             d[modes[i - 1, j - 1]].add(i)
         t_set = test_set.copy()
-        t_set.discard(j)
+        t_set.remove(j)
         test_set = t_set
         for v in d.values():
             if len(v) == 0:
@@ -65,14 +78,16 @@ def mode_separation(modes, test_set, state_set):
             if len(t_set) > 1 and len(v) > 1:
                 node = Node(t_set, v)
                 # print(node.state_list, node.modes)
-                tmp_set = init_test_set.copy().difference(t_set)
+                tmp_set = init_test_set.copy()
+                tmp_set = delete_list(tmp_set, t_set)
                 print(tmp_set, v)
                 states_list.append(node)
                 mode_separation(modes, t_set, v)
             else:
                 node = Node(t_set, v)
                 # print(node.state_list, node.modes)
-                tmp_set = init_test_set.copy().difference(t_set)
+                tmp_set = init_test_set.copy()
+                tmp_set = delete_list(tmp_set, t_set)
                 print(tmp_set, v)
                 states_list.append(node)
 
@@ -108,7 +123,10 @@ def formula(state):  # вычисление значений по формула
     print(summa)
 
 
-the_first_modes_separation(init_modes)
+# the_first_modes_separation(init_modes)
+init_test_set = list(range(1, len(init_modes[0]) + 1)) # множество проверок
+init_state_set = list(range(1, len(init_modes[:]) + 1)) # множество состояний
+mode_separation(init_modes, init_test_set, init_state_set)
 print(len(states_list))
 # print(np.array(states))
 # for s in states:
