@@ -35,42 +35,14 @@ def state_set_to_string(v):
     return ' '.join(str(s) for s in v)
 
 
-def separate_modes(parent_node, test_list, state_set):
-    mode_set = check_modes_values(modes)  # определение количества режимов
-    custom_test_list = delete_list(init_test_list.copy(), test_list)  # проверки, которые ещё не проводились
-    for j in custom_test_list:  # разделение на группы состояний по режимам по каждому признаку
-        d = dict()  # состояния, разделённые по режимам
-        for m in mode_set:
-            d[m] = set()
-        for i in state_set:
-            d[modes[i - 1, j - 1]].add(i)
-        t_list = test_list.copy()
-        t_list.append(j)
-        for state in d.values():
-            if len(state) == 0:
-                continue
-            if len(t_list) < 6 and len(state) > 1:
-                node = Node(state, t_list)
-
-                dot.node(str(hash(node)), state_set_to_string(state))
-                dot.edge(str(hash(parent_node)), str(hash(node)), str(j), constraint='true')
-
-                print(t_list, state)
-                states_list.append(node)
-                separate_modes(node, t_list, state)
-            else:
-                node = Node(state, t_list)
-
-                dot.node(str(hash(node)), state_set_to_string(state))
-                dot.edge(str(hash(parent_node)), str(hash(node)), str(j), constraint='true')
-
-                print(t_list, state)
-                states_list.append(node)
-
-
-def calculate_graph(test_list, state_set):
+def calculate_graph(parent_node):
+    test_list = parent_node.tests
+    state_set = parent_node.states
+    if len(state_set) < 2:
+        return
     custom_test_list = delete_list(init_test_list.copy(), test_list)  # проверки, которые ещё не проводились
     local_state_list = list()
+    total_j = dict()
     for j in custom_test_list:  # разделение на группы состояний по режимам по каждому признаку
         d = dict()  # состояния, разделённые по режимам
         for m in mode_set:
@@ -79,13 +51,60 @@ def calculate_graph(test_list, state_set):
             d[modes[i - 1, j - 1]].add(i)
         t_list = test_list.copy()
         t_list.append(j)
+        one_test_state_list = list()
         for state in d.values():
             if len(state) == 0:
                 continue
             node = Node(state, t_list)
-            print(t_list, state)
+            # print(t_list, state)
+            one_test_state_list.append(node)
             local_state_list.append(node)
-    step2(local_state_list)
+        calculate_s(one_test_state_list)
+        calculate_j(one_test_state_list)
+        total_j[j] = node_value_s_sum(one_test_state_list)
+    best_test = key_with_max_value(total_j)
+    print("the best number: ", best_test)
+    for node in local_state_list:
+        if best_test in node.tests:
+            states_list.append(node)
+
+            dot.node(str(hash(node)), state_set_to_string(node.states))
+            dot.edge(str(hash(parent_node)), str(hash(node)), str(best_test), constraint='true')
+
+            print(node.states, node.tests)
+            calculate_graph(node)
+
+
+def node_value_s_sum(state_list):
+    total_s_sum = 0
+    total_pj_sum = 0
+    for node in state_list:
+        total_s_sum += node.value_S
+        total_pj_sum += node.get_valuePJ()
+    return total_s_sum + total_pj_sum
+
+
+def calculate_p(one_test_state_list):
+    state_list_probabilities_sum = 0
+    for node in one_test_state_list:
+        state_list_probabilities_sum += get_total_probilities_sum(node.states)
+    for node in one_test_state_list:
+        node.value_P = get_total_probilities_sum(node.states) / state_list_probabilities_sum
+
+
+def calculate_s(one_test_state_list):
+    calculate_p(one_test_state_list)
+    for node in one_test_state_list:
+        node.value_S = (math.log(node.value_P, 2)) * (node.value_P * len(one_test_state_list) - 1)
+        # print(node.value_S)
+
+
+def calculate_j(local_state_list):
+    for node in local_state_list:
+        p_at_pi = [probabilities[state - 1] / get_total_probilities_sum(node.states) for state in node.states]
+        p_at_pi = [math.log(x, 2) * (len(p_at_pi) * x - 1) for x in p_at_pi]
+        node.value_J = sum(p_at_pi)
+        # print(node.states, node.tests, node.value_J)
 
 
 def step2(local_state_list):
@@ -116,12 +135,10 @@ def step2(local_state_list):
         values.append(max(one_state_values))
 
 
-def state_count(state):  # определение количества групп состояний в множестве групп, соответствующему признаку
-    count = 0
-    for st in state.values():
-        if len(st) > 0:
-            count += 1
-    return count
+def key_with_max_value(d):
+    v = list(d.values())
+    k = list(d.keys())
+    return k[v.index(max(v))]
 
 
 def get_total_probilities_sum(state):
@@ -131,29 +148,11 @@ def get_total_probilities_sum(state):
     return total
 
 
-def formula(state):  # вычисление значений по формулам
-    summa = 0
-    total_probabilities_sum = get_total_probilities_sum(state)
-    for values in state.values():
-        probabilities_sum = 0
-        for v in values:
-            probabilities_sum += probabilities[v - 1]
-        if probabilities_sum == 0:
-            continue
-        value = state_count(state) * probabilities_sum / total_probabilities_sum - 1
-        log = math.log(probabilities_sum, 2)
-        summa += (value * log)
-    print(summa)
-
-
 mode_set = check_modes_values(modes)  # определение количества режимов
 start_node = Node(init_state_list, list())
-# dot.node(str(hash(start_node)), state_set_to_string(init_state_list))
-
-# separate_modes(start_node, list(), init_state_list)
-print(list(), init_state_list)
+dot.node(str(hash(start_node)), state_set_to_string(init_state_list))
 states_list.append(start_node)
-calculate_graph(list(), init_state_list)
-print(len(states_list))
-# dot.format = 'png'
-# dot.render('test-output/round-table.gv', view=True)
+calculate_graph(start_node)
+print("states count: ", len(states_list))
+dot.format = 'png'
+dot.render('test-output/round-table.gv', view=True)
