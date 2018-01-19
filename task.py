@@ -4,7 +4,7 @@ from graphviz import Digraph
 from Node import Node
 
 
-fname = "input1.txt"
+fname = "input2.txt"  # имя файла с исходными данными
 input_data = np.loadtxt(fname, dtype=None, delimiter='\t')
 modes = input_data[:, 0:-1]  # массив режимов (количество состояний на количество признаков)
 probabilities = input_data[:, -1]  # массив вероятностей состояний
@@ -67,7 +67,10 @@ def calculate_graph(parent_node):
     for node in local_state_list:
         if best_test in node.tests:
             states_list.append(node)
-
+            if node.states == parent_node.states:
+                parent_node.tests = node.tests
+                calculate_graph(parent_node)
+                continue
             dot.node(str(hash(node)), state_set_to_string(node.states))
             dot.edge(str(hash(parent_node)), str(hash(node)), str(best_test), constraint='true')
 
@@ -105,34 +108,6 @@ def calculate_j(local_state_list):
         p_at_pi = [math.log(x, 2) * (len(p_at_pi) * x - 1) for x in p_at_pi]
         node.value_J = sum(p_at_pi)
         # print(node.states, node.tests, node.value_J)
-
-
-def step2(local_state_list):
-    values = list()
-    for node in local_state_list:
-        custom_test_list = delete_list(init_test_list.copy(), node.tests)
-        one_state_values = dict()
-        for j in custom_test_list:  # разделение на группы состояний по режимам по каждому признаку
-            d = dict()  # состояния, разделённые по режимам
-            for m in mode_set:
-                d[m] = set()
-            for i in node.states:
-                d[modes[i - 1, j - 1]].add(i)
-            t_list = node.tests.copy()
-            t_list.append(j)
-            sum_probability = list()
-            for state in d.values():
-                if len(state) == 0:
-                    continue
-                sum_probability.append(get_total_probilities_sum(state))
-            # нормировка вероятности по текущему состоянию
-            sum_probability[:] = [x / sum(sum_probability) for x in sum_probability]
-            value = 0
-            for x in sum_probability:
-                value += x * x
-            value = value - (1 / len(sum_probability))
-            one_state_values[j] = value
-        values.append(max(one_state_values))
 
 
 def key_with_max_value(d):
