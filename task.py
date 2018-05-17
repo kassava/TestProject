@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import time
 from graphviz import Digraph
 from Node import Node
 
@@ -63,6 +64,12 @@ def calculate_graph(parent_node):
         calculate_j(one_test_state_list)
         total_j[j] = node_value_s_sum(one_test_state_list)
     best_test = key_with_max_value(total_j)
+
+    print("Вычисление номера лучшей проверки", sep=' ', end='', flush=True)
+    for number in range(3):
+        print("...", sep=' ', end='', flush=True)
+        time.sleep(0.3)
+
     print("the best number: ", best_test)
     for node in local_state_list:
         if best_test in node.tests:
@@ -74,7 +81,7 @@ def calculate_graph(parent_node):
             dot.node(str(hash(node)), state_set_to_string(node.states))
             dot.edge(str(hash(parent_node)), str(hash(node)), str(best_test), constraint='true')
 
-            print(node.states, node.tests)
+            print("Список состояний:", node.states, "Список необходимых проверок: ", node.tests)
             calculate_graph(node)
 
 
@@ -128,6 +135,10 @@ start_node = Node(init_state_list, list())
 dot.node(str(hash(start_node)), state_set_to_string(init_state_list))
 states_list.append(start_node)
 calculate_graph(start_node)
-print("states count: ", len(states_list))
+print("Количество вычисленных состояний: ", len(states_list))
+print("Формиование графа состояний", sep=' ', end='', flush=True)
+for number in range(3):
+    print("...", sep=' ', end='', flush=True)
+    time.sleep(1)
 dot.format = 'png'
 dot.render('test-output/round-table.gv', view=True)
